@@ -2,144 +2,136 @@
 
 # <Constants>
 cache_dir="$HOME/.cache/wallblur"
-display_resolution=$(echo -n $(xdpyinfo | grep 'dimensions:') | awk '{print $2;}')
+display_resolution=$(echo -n "$(xdpyinfo | grep 'dimensions:')" | awk '{print $2;}')
 # </Constants>
 
 
 # <Functions>
+print_usage () {
+        printf "Usage: wallblur [-i 'path/to/wallpaper.jpg']\n\n"
+}
+
 err() {
-	echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >&2
+        echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >&2
 }
 
 gen_blurred_seq () {
-	notify-send "Building wallblur cache for "$base_filename""
+        notify-send "Building wallblur cache for "$base_filename""
 
-	clean_cache
+        clean_cache
 
-	wallpaper_resolution=$(identify -format "%wx%h" $wallpaper)
+        wallpaper_resolution=$(identify -format "%wx%h" $wallpaper)
 
-	err " Display resolution is: ""$display_resolution"""
-	err " Wallpaper resolution is: $wallpaper_resolution"
+        err " Display resolution is: ""$display_resolution"""
+        err " Wallpaper resolution is: $wallpaper_resolution"
 
-	if [ "$wallpaper_resolution" != "$display_resolution" ]; then
-		
-		err "Scaling wallpaper to match resolution"
-		convert $wallpaper -resize $display_resolution "$cache_dir"/"$filename"0."$extension"
-		wallpaper="$cache_dir"/"$filename"0."$extension"
-	fi
+        if [ "$wallpaper_resolution" != "$display_resolution" ]
+        then
 
-	for i in $(seq 0 1 5)
-	do
-		blurred_wallaper=""$cache_dir"/"$filename""$i"."$extension""
-		convert -blur 0x$i $wallpaper $blurred_wallaper
-		err " > Generating $(basename $blurred_wallaper)"
-	done
-}
+                err "Scaling wallpaper to match resolution"
+                convert $wallpaper -resize $display_resolution "$cache_dir"/"$filename"0."$extension"
+                wallpaper="$cache_dir"/"$filename"0."$extension"
+                #echo "New wallpaper"
+            fi
+
+            for i in $(seq 0 1 5)
+            do
+                blurred_wallaper="$cache_dir/$filename$i.$extension"
+                convert -blur 0x"$i" "$wallpaper" "$blurred_wallaper"
+                err " > Generating $(basename "$blurred_wallaper")"
+            done
+        }
 
 
 do_blur () {
-	for i in $(seq 5)
-	do
-		blurred_wallaper=""$cache_dir"/"$filename""$i"."$extension""
-		feh --bg-fill "$blurred_wallaper" 
-	done
+        for i in $(seq 5)
+        do
+                blurred_wallaper="$cache_dir/$filename$i.$extension"
+                hsetroot -center "$blurred_wallaper"
+        done
 }
 
 do_unblur () {
-	for i in $(seq 5 -1 0)
-	do
-		blurred_wallaper=""$cache_dir"/"$filename""$i"."$extension""
-		feh --bg-fill "$blurred_wallaper" 
-	done
-}
-
-check_wallpaper_changed() {
-	pywallpaper="$(grep wallpaper ~/.cache/wal/colors.sh | awk -F "=" '{print $2}')"
-	temp_pre=${pywallpaper%\'} 
-	temp_post="${temp_pre#\'}" 
-
-	pywallpaper=${temp_post##*/}
-
-	if [ "$pywallpaper" != "$base_filename" ]
-	then
-		err " Wallpaper changed. Going to update cache"
-
-		wallpaper="$temp_post"
-		base_filename=${wallpaper##*/}
-		extension="${base_filename##*.}"
-		filename="${base_filename%.*}"
-
-		gen_blurred_seq
-
-		prev_state="reset"
-	fi
+        for i in $(seq 5 -1 0)
+        do
+                blurred_wallaper="$cache_dir/$filename$i.$extension"
+                hsetroot -center "$blurred_wallaper"
+        done
 }
 
 clean_cache() {
-	if [  "$(ls -A "$cache_dir")" ]; then
-		err " * Cleaning existing cache"
-		rm -r "$cache_dir"/*
-	fi
+        if [  "$(ls -A "$cache_dir")" ]; then
+                err " * Cleaning existing cache"
+                rm -r "$cache_dir"/*
+        fi
 }
 # </Functions>
 
+# To get the current wallpaper
+i_option=''
+while getopts ":i:d:" flag; do
+        case "${flag}" in
+                i) i_option="${OPTARG}";;
+                :) print_usage
+                   exit 1;;
+                *) print_usage
+                   exit 1;;
+        esac
+done
 
-# Get the current wallpaper location from pywal cache
-wallpaper="$(grep wallpaper ~/.cache/wal/colors.sh | awk -F "=" '{print $2}')"
-temp_pre=${wallpaper%\'} 
-wallpaper="${temp_pre#\'}" 
-err "Curr wallpaper $wallpaper"
+# Check to make sure an option is given
+if [[ -z "$i_option" ]]; then
+        printf "\nPlease specify a wallpaper\n\n"
+        print_usage
+        exit 1
+fi
+
+wallpaper="$i_option"
 
 base_filename=${wallpaper##*/}
 extension="${base_filename##*.}"
 filename="${base_filename%.*}"
 
-err $base_filename
-err $extension
-err $filename
-
-err $cache_dir
+err "$wallpaper"
+err "$cache_dir"
 
 # Create a cache directory if it doesn't exist
 if [ ! -d "$cache_dir" ]; then
-	err "* Creating cache directory"
-	mkdir -p "$cache_dir"
+        err "* Creating cache directory"
+        mkdir -p "$cache_dir"
+ else
+        clean_cache
 fi
 
-blur_cache=""$cache_dir"/"$filename"0."$extension""
+blur_cache="$cache_dir/$filename"0."$extension"
 
 # Generate cached images if no cached images are found
 if [ ! -f "$blur_cache" ]
 then
-	gen_blurred_seq
+        gen_blurred_seq
 fi
 
 prev_state="reset"
 
 while :; do
 
-	check_wallpaper_changed
+        current_workspace="$(xprop -root _NET_CURRENT_DESKTOP | awk '{print $3}')"
+        num_windows="$(echo "$(wmctrl -l)" | awk -F" " '{print $2}' | grep ^$current_workspace)"
 
-	current_workspace="$(xprop -root _NET_CURRENT_DESKTOP | awk '{print $3}')"
-	#err $current_workspace
-	if [[ -n "$current_workspace" ]]; then
-
-		num_windows="$(echo "$(wmctrl -l)" | awk -F" " '{print $2}' | grep ^$current_workspace)"
-	#	err $num_windows
-		# If there are active windows
-		if [ -n "$num_windows" ]; then
-			if [ "$prev_state" != "blurred" ]; then
-				err " ! Blurring"
-				do_blur
-			fi
-			prev_state="blurred"
-		    else #If there are no active windows
-		    	if [ "$prev_state" != "unblurred" ]; then
-		    		err " ! Un-blurring"
-		    		do_unblur
-		    	fi
-		    	prev_state="unblurred"
-		fi
-	fi
-	sleep 0.3
+        # If there are active windows
+        if [ -n "$num_windows" ]
+        then
+                if [ "$prev_state" != "blurred" ];then
+                        err " ! Blurring"
+                        do_blur
+                fi
+                prev_state="blurred"
+            else #If there are no active windows
+                if [ "$prev_state" != "unblurred" ];then
+                        err " ! Un-blurring"
+                        do_unblur
+                fi
+                prev_state="unblurred"
+            fi
+            sleep 0.3
 done
