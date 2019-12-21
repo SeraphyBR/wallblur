@@ -12,15 +12,15 @@ print_usage () {
 }
 
 err() {
-    echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >&2
+    echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*@" >&2
 }
 
 gen_blurred_seq () {
-    notify-send "Building wallblur cache for "$base_filename""
+    notify-send "Building wallblur cache for $base_filename "
 
     clean_cache
 
-    wallpaper_resolution=$(identify -format "%wx%h" $wallpaper)
+    wallpaper_resolution=$(identify -format "%wx%h" "$wallpaper")
 
     err " Display resolution is: ""$display_resolution"""
     err " Wallpaper resolution is: $wallpaper_resolution"
@@ -28,14 +28,14 @@ gen_blurred_seq () {
     if [ "$wallpaper_resolution" != "$display_resolution" ]
     then
         err "Scaling wallpaper to match resolution"
-        convert $wallpaper -resize $display_resolution "$cache_dir"/"$filename"0."$extension"
-        wallpaper="$cache_dir"/"$filename"0."$extension"
+        convert "$wallpaper" -resize "$display_resolution" "$cache_dir"/"$filename""_"0."$extension"
+        wallpaper="$cache_dir"/"$filename""_"0."$extension"
         #echo "New wallpaper"
     fi
 
     for i in $(seq 0 1 5)
     do
-        blurred_wallaper="$cache_dir/$filename$i.$extension"
+        blurred_wallaper="$cache_dir/$filename""_""$i.$extension"
         convert -blur 0x"$i" "$wallpaper" "$blurred_wallaper"
         err " > Generating $(basename "$blurred_wallaper")"
     done
@@ -45,7 +45,7 @@ gen_blurred_seq () {
 do_blur () {
     for i in $(seq 5)
     do
-        blurred_wallaper="$cache_dir/$filename$i.$extension"
+        blurred_wallaper="$cache_dir/$filename""_""$i.$extension"
         hsetroot -cover "$blurred_wallaper"
     done
 }
@@ -53,7 +53,7 @@ do_blur () {
 do_unblur () {
     for i in $(seq 5 -1 0)
     do
-        blurred_wallaper="$cache_dir/$filename$i.$extension"
+        blurred_wallaper="$cache_dir/$filename""_""$i.$extension"
         hsetroot -cover "$blurred_wallaper"
     done
 }
@@ -61,7 +61,8 @@ do_unblur () {
 clean_cache() {
     if [  "$(ls -A "$cache_dir")" ]; then
         err " * Cleaning existing cache"
-        rm -r "$cache_dir"/*
+        rm -r "${cache_dir:?}"
+        mkdir -p "$cache_dir"
     fi
 }
 # </Functions>
@@ -102,7 +103,7 @@ else
     clean_cache
 fi
 
-blur_cache="$cache_dir/$filename"0."$extension"
+blur_cache="$cache_dir/$filename""_"0."$extension"
 
 # Generate cached images if no cached images are found
 if [ ! -f "$blur_cache" ]
@@ -112,25 +113,25 @@ fi
 
 prev_state="reset"
 
-while :; do
-
+while true
+do
     current_workspace="$(xprop -root _NET_CURRENT_DESKTOP | awk '{print $3}')"
     num_windows="$(wmctrl -l | awk -F" " '{print $2}' | grep ^"$current_workspace")"
 
-        # If there are active windows
-        if [ -n "$num_windows" ]
-        then
-            if [ "$prev_state" != "blurred" ];then
-                err " ! Blurring"
-                do_blur
-            fi
-            prev_state="blurred"
-        else #If there are no active windows
-            if [ "$prev_state" != "unblurred" ];then
-                err " ! Un-blurring"
-                do_unblur
-            fi
-            prev_state="unblurred"
+    # If there are active windows
+    if [ -n "$num_windows" ]
+    then
+        if [ "$prev_state" != "blurred" ];then
+            err " ! Blurring"
+            do_blur
         fi
-        sleep 0.3
-    done
+        prev_state="blurred"
+    else #If there are no active windows
+        if [ "$prev_state" != "unblurred" ];then
+            err " ! Un-blurring"
+            do_unblur
+        fi
+        prev_state="unblurred"
+    fi
+    sleep 0.3
+done
