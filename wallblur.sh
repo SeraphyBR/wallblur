@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 # <Constants>
 cache_dir="$HOME/.cache/wallblur"
 display_resolution=$(echo -n "$(xdpyinfo | grep 'dimensions:')" | awk '{print $2;}')
@@ -67,6 +68,13 @@ clean_cache() {
 }
 # </Functions>
 
+# Prevent multiple instances
+if [ "$(pgrep -cl wallblur.sh)" -gt 1 ]; then
+    err 'Another instance of wallblur is already running.'
+    err 'Please kill it with (pkill wallblur.sh) first.'
+    exit
+fi
+
 # To get the current wallpaper
 i_option=''
 while getopts ":i:d:" flag; do
@@ -113,8 +121,12 @@ fi
 
 prev_state="reset"
 
+
 while true
 do
+    if [ -z "$DISPLAY" ]; then
+        exit
+    fi
     current_workspace="$(xprop -root _NET_CURRENT_DESKTOP | awk '{print $3}')"
     num_windows="$(wmctrl -l | awk -F" " '{print $2}' | grep ^"$current_workspace")"
 
