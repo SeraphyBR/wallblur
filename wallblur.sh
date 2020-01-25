@@ -1,19 +1,22 @@
 #!/bin/bash
 
-
 # <Constants>
 cache_dir="$HOME/.cache/wallblur"
 display_resolution=$(echo -n "$(xdpyinfo | grep 'dimensions:')" | awk '{print $2;}')
 # </Constants>
 
-
 # <Functions>
 print_usage () {
-    printf "Usage: wallblur [-i 'path/to/wallpaper.jpg']\n\n"
+    printf "Usage: wallblur [options] -i image\n"
+    printf "Options:\n"
+    printf "\t-d\tWallblur will not close with the terminal, nor will it display messages"
+    printf "\n\n"
 }
 
 err() {
-    echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*@" >&2
+    if [ "$silent" != 1 ]; then
+        echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*@" >&2
+    fi
 }
 
 gen_blurred_seq () {
@@ -66,19 +69,67 @@ clean_cache() {
         mkdir -p "$cache_dir"
     fi
 }
+
+main() {
+    # Create a cache directory if it doesn't exist
+    if [ ! -d "$cache_dir" ]; then
+        err "* Creating cache directory"
+        mkdir -p "$cache_dir"
+    else
+        clean_cache
+    fi
+
+    blur_cache="$cache_dir/$filename""_"0."$extension"
+
+    # Generate cached images if no cached images are found
+    if [ ! -f "$blur_cache" ]
+    then
+        gen_blurred_seq
+    fi
+
+    prev_state="reset"
+
+    while true
+    do
+        if ! pidof X; then
+            break
+        fi
+        current_workspace="$(xprop -root _NET_CURRENT_DESKTOP | awk '{print $3}')"
+        num_windows="$(wmctrl -l | awk -F" " '{print $2}' | grep ^"$current_workspace")"
+
+        # If there are active windows
+        if [ -n "$num_windows" ]
+        then
+            if [ "$prev_state" != "blurred" ];then
+                err " ! Blurring"
+                do_blur
+            fi
+            prev_state="blurred"
+        else #If there are no active windows
+            if [ "$prev_state" != "unblurred" ];then
+                err " ! Un-blurring"
+                do_unblur
+            fi
+            prev_state="unblurred"
+        fi
+        sleep 0.32
+    done
+}
 # </Functions>
 
 # Prevent multiple instances
 if [ "$(pgrep -cl wallblur.sh)" -gt 1 ]; then
     err 'Another instance of wallblur is already running.'
     err 'Please kill it with (pkill wallblur.sh) first.'
-    exit
+    exit 1
 fi
 
 # To get the current wallpaper
 i_option=''
-while getopts ":i:d:" flag; do
+while getopts ":di:" flag; do
     case "${flag}" in
+        d)  silent=1
+            trap "" 1;;
         i) i_option="${OPTARG}";;
         :) print_usage
             exit 1;;
@@ -95,55 +146,20 @@ if [[ -z "$i_option" ]]; then
 fi
 
 wallpaper="$i_option"
-
 base_filename=${wallpaper##*/}
 extension="${base_filename##*.}"
 filename="${base_filename%.*}"
 
+if [ ! -e "$wallpaper" ]; then
+    echo "The image was not found, check that the name is correct, or that the path exists "
+    exit 1
+fi
+
 err "$wallpaper"
 err "$cache_dir"
 
-# Create a cache directory if it doesn't exist
-if [ ! -d "$cache_dir" ]; then
-    err "* Creating cache directory"
-    mkdir -p "$cache_dir"
+if [ "$silent" == 0 ]; then
+    main
 else
-    clean_cache
+    main &
 fi
-
-blur_cache="$cache_dir/$filename""_"0."$extension"
-
-# Generate cached images if no cached images are found
-if [ ! -f "$blur_cache" ]
-then
-    gen_blurred_seq
-fi
-
-prev_state="reset"
-
-
-while true
-do
-    if [ -z "$DISPLAY" ]; then
-        exit
-    fi
-    current_workspace="$(xprop -root _NET_CURRENT_DESKTOP | awk '{print $3}')"
-    num_windows="$(wmctrl -l | awk -F" " '{print $2}' | grep ^"$current_workspace")"
-
-    # If there are active windows
-    if [ -n "$num_windows" ]
-    then
-        if [ "$prev_state" != "blurred" ];then
-            err " ! Blurring"
-            do_blur
-        fi
-        prev_state="blurred"
-    else #If there are no active windows
-        if [ "$prev_state" != "unblurred" ];then
-            err " ! Un-blurring"
-            do_unblur
-        fi
-        prev_state="unblurred"
-    fi
-    sleep 0.3
-done
