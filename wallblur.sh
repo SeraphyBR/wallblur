@@ -7,9 +7,10 @@ display_resolution=$(echo -n "$(xdpyinfo | grep 'dimensions:')" | awk '{print $2
 
 # <Functions>
 print_usage () {
-    printf "Usage: wallblur [options] -i image\n"
-    printf "Options:\n"
-    printf "\t-d\tWallblur will not close with the terminal, nor will it display messages"
+    printf "Usage: wallblur -[i,o] image\n"
+    printf "Detail:\n"
+    printf "\t-i\tNormal mode\n"
+    printf "\t-o\tOne-shot mode, Wallblur will not close with the terminal, nor will it display messages"
     printf "\n\n"
 }
 
@@ -91,8 +92,8 @@ main() {
 
     while true
     do
-        if ! pidof X; then
-            break
+        if [ -z "$DISPLAY" ]; then
+            exit 1
         fi
         current_workspace="$(xprop -root _NET_CURRENT_DESKTOP | awk '{print $3}')"
         num_windows="$(wmctrl -l | awk -F" " '{print $2}' | grep ^"$current_workspace")"
@@ -118,7 +119,7 @@ main() {
 # </Functions>
 
 # Prevent multiple instances
-if [ "$(pgrep -cl wallblur.sh)" -gt 1 ]; then
+if pidof -x "$(basename "$0")" -o $$ >/dev/null; then
     err 'Another instance of wallblur is already running.'
     err 'Please kill it with (pkill wallblur.sh) first.'
     exit 1
@@ -126,10 +127,11 @@ fi
 
 # To get the current wallpaper
 i_option=''
-while getopts ":di:" flag; do
+while getopts "o:i:" flag; do
     case "${flag}" in
-        d)  silent=1
-            trap "" 1;;
+        o)  silent=1
+            trap "" 1
+            i_option="${OPTARG}";;
         i) i_option="${OPTARG}";;
         :) print_usage
             exit 1;;
@@ -137,6 +139,7 @@ while getopts ":di:" flag; do
             exit 1;;
     esac
 done
+
 
 # Check to make sure an option is given
 if [[ -z "$i_option" ]]; then
