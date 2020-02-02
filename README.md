@@ -2,7 +2,7 @@
 
 wallblur is a simple shell script that creates a faux blurred background effect for your linux desktop without needing a compositor.
 
-![demo](https://github.com/turing753/wallblur/blob/master/demo.gif)
+![demo](demo.gif)
 
 ## Getting Started
 
@@ -10,12 +10,11 @@ wallblur is a simple shell script that creates a faux blurred background effect 
 
 In order to use the script, you will need to make sure you have imagemagick, [hsetroot](https://github.com/himdel/hsetroot) (or any command line program that sets a wallpaper, such as [feh](https://github.com/derf/feh)) and wmctrl installed.
 
-
 ### Note
 
 Make sure that you stop any existing application that is responsible for setting your wallpaper.
 
-The script will automatically resize your wallpaper while mantaining aspect ratio so that it fits your display's resolution. Don't worry, it will not modify the original file.
+The script will automatically resize your wallpaper while maintaining aspect ratio so that it fits your display's resolution. Don't worry, it will not modify the original file.
 
 ## Running wallblur
 
@@ -35,10 +34,7 @@ chmod +x path/to/wallblur.sh
 
 ### automatically start wallblur on startup
 
-If you are using **cinnamon or gnome**, add ```path/to/_gnome_cinnamon.sh &``` as a custom command in your "Startup Applications" instead of ```.xprofile```. Make sure to provide the actual full path, without $HOME or ~.
-
-
-Otherwise, if you would like to start wallblur on startup automatically, assuming you are on an X11 windowing system, add the following line to your **.xprofile** file:
+If you would like to start wallblur on startup automatically, assuming you are on an X11 windowing system, add the following line to your **.xprofile** file:
 
 ```
 path/to/wallblur.sh -i 'path/to/wallpaper.jpeg' &
