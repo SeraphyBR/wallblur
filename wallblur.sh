@@ -7,10 +7,11 @@ display_resolution=$(echo -n "$(xdpyinfo | grep 'dimensions:')" | awk '{print $2
 
 # <Functions>
 print_usage () {
-    printf "Usage: wallblur -[i,o] image\n"
+    printf "Usage: wallblur -[i,o] image/directory\n"
     printf "Detail:\n"
-    printf "\t-i\tNormal mode\n"
-    printf "\t-o\tOne-shot mode, Wallblur will not close with the terminal, nor will it display messages"
+    printf "\t-i\tNormal mode;\n"
+    printf "\t-o\tOne-shot mode, Wallblur will not close with the terminal,\n"
+    printf "\t\tnor will it display messages and will kill any previous instance of this script;"
     printf "\n\n"
 }
 
@@ -60,6 +61,27 @@ do_unblur () {
     do
         blurred_wallaper="$cache_dir/$filename""_""$i.$extension"
         hsetroot -cover "$blurred_wallaper"
+    done
+}
+
+# get random file in dir if passed argument is a dir
+get_random() {
+    dir="$1"
+    if [ ! -d "$dir" ]; then
+        i_option="$dir"
+        return
+    fi
+    dir=("$dir"/*)
+    dir="${dir[RANDOM % ${#dir[@]}]}"
+    get_random "$dir"
+}
+
+kill_previous(){
+    script_name=${BASH_SOURCE[0]}
+    for pid in $(pidof -x "$script_name"); do
+        if [ "$pid" != $$ ]; then
+            kill -9 "$pid"
+        fi
     done
 }
 
@@ -118,21 +140,15 @@ main() {
 }
 # </Functions>
 
-# Prevent multiple instances
-if pidof -x "$(basename "$0")" -o $$ >/dev/null; then
-    err 'Another instance of wallblur is already running.'
-    err 'Please kill it with (pkill wallblur.sh) first.'
-    exit 1
-fi
-
 # To get the current wallpaper
 i_option=''
 while getopts "o:i:" flag; do
     case "${flag}" in
         o)  silent=1
+            kill_previous
             trap "" 1
-            i_option="${OPTARG}";;
-        i) i_option="${OPTARG}";;
+            get_random "${OPTARG}";;
+        i) get_random "${OPTARG}";;
         :) print_usage
             exit 1;;
         *) print_usage
@@ -140,6 +156,12 @@ while getopts "o:i:" flag; do
     esac
 done
 
+# Prevent multiple instances
+if pidof -x "$(basename "$0")" -o $$ >/dev/null; then
+    err 'Another instance of wallblur is already running.'
+    err 'Please kill it with (pkill wallblur.sh) first.'
+    exit 1
+fi
 
 # Check to make sure an option is given
 if [[ -z "$i_option" ]]; then
