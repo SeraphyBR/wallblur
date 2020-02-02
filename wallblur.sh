@@ -3,6 +3,8 @@
 # <Constants>
 cache_dir="$HOME/.cache/wallblur"
 display_resolution=$(echo -n "$(xdpyinfo | grep 'dimensions:')" | awk '{print $2;}')
+wallpaper_command="hsetroot -cover"
+#wallpaper_command="feh --bg-fill"
 # </Constants>
 
 # <Functions>
@@ -52,7 +54,7 @@ do_blur () {
     for i in $(seq 5)
     do
         blurred_wallaper="$cache_dir/$filename""_""$i.$extension"
-        hsetroot -cover "$blurred_wallaper"
+        eval "$wallpaper_command" "$blurred_wallaper"
     done
 }
 
@@ -60,7 +62,7 @@ do_unblur () {
     for i in $(seq 5 -1 0)
     do
         blurred_wallaper="$cache_dir/$filename""_""$i.$extension"
-        hsetroot -cover "$blurred_wallaper"
+        eval "$wallpaper_command" "$blurred_wallaper"
     done
 }
 

@@ -8,7 +8,7 @@ wallblur is a simple shell script that creates a faux blurred background effect 
 
 ### Dependencies
 
-In order to use the script, you will need to make sure you have imagemagick, [hsetroot](https://github.com/himdel/hsetroot) and wmctrl installed.
+In order to use the script, you will need to make sure you have imagemagick, [hsetroot](https://github.com/himdel/hsetroot) (or any command line program that sets a wallpaper, such as [feh](https://github.com/derf/feh)) and wmctrl installed.
 
 
 ### Note
