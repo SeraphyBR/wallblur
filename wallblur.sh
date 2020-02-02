@@ -7,6 +7,13 @@ wallpaper_command="hsetroot -cover"
 #wallpaper_command="feh --bg-fill"
 # </Constants>
 
+# check if the custom_command variable exists, you can use it to change 
+# the program used to set the wallpaper, if you don't want to change it in 
+# the script directly
+if [ -n "$custom_command" ]; then
+    wallpaper_command="$custom_command"
+fi
+
 # <Functions>
 print_usage () {
     printf "Usage: wallblur -[i,o] image/directory\n"
@@ -184,6 +191,7 @@ fi
 
 err "$wallpaper"
 err "$cache_dir"
+
 
 if [ "$silent" == 0 ]; then
     main

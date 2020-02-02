@@ -18,17 +18,31 @@ The script will automatically resize your wallpaper while maintaining aspect rat
 
 ## Running wallblur
 
+```
+Usage: wallblur -[i,o] image/directory
+Detail:
+	-i	Normal mode;
+	-o	One-shot mode, Wallblur will not close with the terminal,
+		nor will it display messages and will kill any previous instance of this script;
+```
+
 ### the manual way
 
 You can run wallblur by running the following command:
 
-```
+```sh
 path/to/wallblur.sh -i 'path/to/wallpaper.jpeg' &
+```
+
+or passing the program to be used to set the wallpaper
+
+```sh
+custom_command="feh --bg-fill" path/to/wallblur.sh -i 'path/to/wallpaper.jpeg' &
 ```
 
 If you are copying and pasting the script instead of downloading the script. Make sure you make it executable by using the following command:
 
-```
+```sh
 chmod +x path/to/wallblur.sh
 ```
 
@@ -36,14 +50,14 @@ chmod +x path/to/wallblur.sh
 
 If you would like to start wallblur on startup automatically, assuming you are on an X11 windowing system, add the following line to your **.xprofile** file:
 
-```
-path/to/wallblur.sh -i 'path/to/wallpaper.jpeg' &
+```sh
+path/to/wallblur.sh -o 'path/to/wallpaper.jpeg' &
 ```
 
-Replacing ***path/to/*** with the actual path where the script is residing.
+Replacing **_path/to/_** with the actual path where the script is residing.
 
 And if you are using **i3wm**, you can add this line to your config:
 
-```
-exec --no-startup-id sh -c "path/to/wallblur.sh &"
+```sh
+exec --no-startup-id path/to/wallblur.sh -o path/to/wallpaper.jpeg &
 ```
