@@ -34,6 +34,12 @@ You can run wallblur by running the following command:
 path/to/wallblur.sh -i 'path/to/wallpaper.jpeg' &
 ```
 
+or entering a folder that contains only images, wallblur will take an image of that folder at random
+
+```sh
+path/to/wallblur.sh -i 'path/to/wallpapers/folder' &
+```
+
 or passing the program to be used to set the wallpaper
 
 ```sh
