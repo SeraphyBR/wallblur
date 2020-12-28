@@ -198,6 +198,6 @@ err "$cache_dir"
 if [ "$silent" == 0 ]; then
     main
 else
-    main &
+    main > /dev/null &
     echo $! > "$pid_file"
 fi
