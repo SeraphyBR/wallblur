@@ -2,6 +2,7 @@
 
 # <Constants>
 cache_dir="$HOME/.cache/wallblur"
+pid_file="$HOME/.wallblur.pid"
 display_resolution=$(echo -n "$(xdpyinfo | grep 'dimensions:')" | awk '{print $2;}')
 wallpaper_command="hsetroot -cover"
 #wallpaper_command="feh --bg-fill"
@@ -86,12 +87,13 @@ get_random() {
 }
 
 kill_previous(){
-    script_name=${BASH_SOURCE[0]}
-    for pid in $(pidof -x "$script_name"); do
-        if [ "$pid" != $$ ]; then
-            kill -9 "$pid"
+    if [ -e "$pid_file" ]; then
+        pid=$(<"$pid_file")
+        if [ ! -z "$pid" ] && [ "$pid" != $$ ]; then
+            kill -15 "$pid"
         fi
-    done
+    fi
+    touch "$pid_file"
 }
 
 clean_cache() {
@@ -197,4 +199,5 @@ if [ "$silent" == 0 ]; then
     main
 else
     main &
+    echo $! > "$pid_file"
 fi
